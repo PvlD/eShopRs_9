@@ -1,0 +1,14 @@
+
+[env]
+CARGO_MAKE_EXTEND_WORKSPACE_MAKEFILE = "true"
+
+[tasks.test-rabbit-mq-bus]
+workspace = false
+command = "cargo"
+args =  ["test", "-p", "rabbit_mq_bus", "--", "--test-threads=1"]
+
+
+
+[tasks.clean]
+command = "cargo"
+args = ["clean"]

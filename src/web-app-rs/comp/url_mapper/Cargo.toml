@@ -1,0 +1,8 @@
+[package]
+name = "url_mapper"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+log = { workspace = true }
+regex = { workspace = true }

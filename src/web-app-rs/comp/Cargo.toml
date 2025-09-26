@@ -1,0 +1,64 @@
+[workspace]
+resolver = "3"
+edition = "2024"
+members = [
+  "./domain/catalog/catalog",
+  "./domain/basket_ordering",
+  "./url_mapper",
+  "./api_version/",
+  "app_err",
+  "auth",
+  "error_template",
+  "rabbit_mq_bus",
+  "ebus",
+]
+
+[workspace.dependencies]
+amqprs = { version = "2", features = ["traces", "urispec"] }
+anyhow = "1"
+api_version = { path = "./api_version" }
+app_err = { path = "./app_err" }
+app_events = { path = "./app_events" }
+async-trait = "0.1"
+auth = { path = "./auth" }
+axum = { version = "0.8", features = ["macros"] }
+axum-login = "0.18.0"
+basket_ordering = { path = "./domain/basket_ordering" }
+catalog = { path = "./domain/catalog/catalog" }
+cfg-if = "1.0"
+chrono = { version = "0.4", features = ["serde"] }
+dotenvy = { version = "0.15" }
+ebus = { path = "./ebus" }
+either = "1"
+error_template = { path = "./error_template" }
+futures = "0.3"
+http = "1"
+# leptos = { git = "https://github.com/leptos-rs/leptos.git" ,features = ["nightly"]}
+# leptos_axum = { git = "https://github.com/leptos-rs/leptos.git" }
+# leptos_meta = { git = "https://github.com/leptos-rs/leptos.git" }
+# leptos_router = { git = "https://github.com/leptos-rs/leptos.git" ,features = ["nightly"]  }
+leptos = { version = "0.8", features = ["nightly"] }
+leptos_axum = { version = "0.8" }
+leptos_meta = { version = "0.8" }
+leptos_router = { version = "0.8", features = ["nightly"] }
+log = "0.4"
+openidconnect = { version = "4.0.1", features = ["native-tls"] }
+pin-project-lite = { version = "0.2.16" }
+rabbit_mq_bus = { path = "./rabbit_mq_bus" }
+regex = "1"
+reqwest = { version = "0", features = ["json", "stream"] }
+rust_decimal = "1"
+rust_decimal_macros = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sqlx = { version = "0.8", features = ["runtime-tokio", "sqlite", "time"] }
+testcontainers = "0.25.0"
+thiserror = "2.0"
+tokio = { version = "1", features = ["full"] }
+tower = { version = "0.5.2", features = ["full"] }
+tower-sessions = { version = "0.14.0", features = ["memory-store"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+url = "2"
+url_mapper = { path = "./url_mapper" }
+uuid = { version = "1", features = ["serde", "v4"] }

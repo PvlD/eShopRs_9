@@ -1,0 +1,69 @@
+[package]
+name = "app"
+version = "0.1.0"
+edition = "2024"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow.workspace = true
+async-trait = { workspace = true, optional = true }
+auth = { workspace = true }
+axum = { workspace = true, optional = true }
+axum-login = { workspace = true, optional = true }
+basket_ordering = { workspace = true }
+catalog = { workspace = true }
+cfg-if.workspace = true
+chrono.workspace = true
+error_template = { workspace = true }
+field.workspace = true
+futures.workspace = true
+http.workspace = true
+leptos.workspace = true
+leptos_axum = { workspace = true, optional = true }
+leptos_meta.workspace = true
+leptos_router.workspace = true
+numfmt.workspace = true
+# stylers.workspace = true
+openidconnect = { workspace = true, features = ["native-tls"], optional = true }
+regex.workspace = true
+reqwest = { workspace = true, optional = true }
+rust_decimal.workspace = true
+rust_decimal_macros.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sqlx = { workspace = true, optional = true }
+stylers = { path = "../stylers/stylers" }
+thiserror.workspace = true
+url.workspace = true
+uuid.workspace = true
+valitron.workspace = true
+wasm-bindgen.workspace = true
+
+[build-dependencies]
+stylers = { path = "../stylers/stylers" }
+
+[features]
+default = []
+hydrate = [
+  "auth/hydrate",
+  "basket_ordering/hydrate",
+  "leptos/hydrate",
+  "stylers/hydrate",
+]
+ssr = [
+  "auth/ssr",
+  "basket_ordering/ssr",
+  "dep:async-trait",
+  "dep:axum",
+  "dep:axum-login",
+  "dep:leptos_axum",
+  "dep:openidconnect",
+  "dep:reqwest",
+  "dep:sqlx",
+  "leptos_meta/ssr",
+  "leptos_router/ssr",
+  "leptos/ssr",
+  "stylers/ssr",
+]
+

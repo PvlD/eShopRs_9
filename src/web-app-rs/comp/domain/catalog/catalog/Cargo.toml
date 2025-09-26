@@ -1,0 +1,32 @@
+[package]
+name = "catalog"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow.workspace = true
+api_version = { workspace = true, optional = true }
+async-trait.workspace = true
+auth = { workspace = true }
+leptos.workspace = true
+leptos_axum = { workspace = true, optional = true }
+log = { workspace = true, optional = true }
+reqwest = { workspace = true, optional = true }
+rust_decimal = { workspace = true }
+rust_decimal_macros = { workspace = true }
+serde.workspace = true
+serde_json.workspace = true
+url_mapper = { workspace = true, optional = true }
+
+[features]
+default = []
+hydrate = ["auth/hydrate", "leptos/hydrate"]
+ssr = [
+  "auth/ssr",
+  "dep:api_version",
+  "dep:leptos_axum",
+  "dep:log",
+  "dep:reqwest",
+  "dep:url_mapper",
+  "leptos/ssr",
+]

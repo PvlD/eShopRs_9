@@ -1,0 +1,11 @@
+{
+  "plugins": ["prettier-plugin-rust"],
+  "overrides": [
+    {
+      "files": "*.rs",
+      "options": {
+        "parser": "jinx-rust"
+      }
+    }
+  ]
+}

@@ -1,0 +1,55 @@
+[package]
+name = "basket_ordering"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow.workspace = true
+api_version = { workspace = true, optional = true }
+app_events = { workspace = true, optional = true }
+async-trait.workspace = true
+auth = { workspace = true }
+axum = { workspace = true, optional = true }
+catalog = { workspace = true }
+cfg-if.workspace = true
+chrono = { workspace = true }
+futures.workspace = true
+leptos.workspace = true
+leptos_axum = { workspace = true, optional = true }
+pin-project-lite = { workspace = true, optional = true }
+prost = { version = "*", optional = true }
+reqwest = { workspace = true, optional = true }
+rust_decimal = { workspace = true }
+serde.workspace = true
+serde_json.workspace = true
+tokio = { workspace = true, optional = true }
+tonic = { version = "*", optional = true }
+tonic-prost = { version = "*", optional = true }
+tower = { workspace = true, optional = true }
+url = { workspace = true }
+# axum-login = { workspace = true }
+url_mapper = { workspace = true }
+uuid = { workspace = true }
+
+[build-dependencies]
+tonic-prost-build = "*"
+
+[features]
+default = ["hydrate", "ssr"]
+hydrate = ["auth/hydrate", "catalog/hydrate", "leptos/hydrate", "uuid/js"]
+ssr = [
+  "auth/ssr",
+  "catalog/ssr",
+  "dep:api_version",
+  "dep:app_events",
+  "dep:axum",
+  "dep:leptos_axum",
+  "dep:pin-project-lite",
+  "dep:prost",
+  "dep:reqwest",
+  "dep:tokio",
+  "dep:tonic",
+  "dep:tonic-prost",
+  "dep:tower",
+  "leptos/ssr",
+]

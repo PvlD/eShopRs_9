@@ -1,0 +1,117 @@
+[workspace]
+resolver = "3"
+edition = "2024"
+members = [
+  "app",
+  "frontend",
+  "server",
+]
+
+[workspace.dependencies]
+amqprs = { version = "2", features = ["traces"] }
+anyhow = "1"
+api_version = { path = "../comp/api_version/" }
+app_events = { path = "../comp/app_events" }
+async-trait = "0.1"
+auth = { path = "../comp/auth" }
+axum = { version = "0.8", features = ["macros"] }
+axum-login = "0.18.0"
+basket_ordering = { path = "../comp/domain/basket_ordering", default-features = false }
+bollard = "0.19"
+catalog = { path = "../comp/domain/catalog/catalog" }
+cfg-if = "1"
+chrono = "0.4"
+console_error_panic_hook = "0.1.7"
+console_log = "1"
+error_template = { path = "../comp/error_template" }
+field = "*"
+futures = "0.3"
+http = "1"
+leptos = { version = "0.8", features = ["nightly"] }
+leptos_axum = { version = "0.8" }
+leptos_meta = { version = "0.8" }
+leptos_router = { version = "0.8", features = ["nightly"] }
+log = "0.4.22"
+log4rs = { version = "1" }
+numfmt = "1"
+openidconnect = { version = "4.0.1", features = ["native-tls"] }
+pin-project-lite = { version = "0.2.16" }
+rabbit_mq_bus = { path = "../comp/rabbit_mq_bus", features = ["traces"] }
+regex = "1"
+reqwest = { version = "0", features = ["json", "stream"] }
+rust_decimal = "1"
+rust_decimal_macros = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1" }
+sqlx = { version = "0.8", features = ["runtime-tokio", "sqlite", "time"] }
+thiserror = "2.0"
+time = "0.3"
+tokio = { version = "1.46.1", features = ["full"] }
+tokio-stream = { version = "0.1", features = ["sync"] }
+tower = { version = "0.5.2", features = ["full"] }
+tower-http = { version = "0.6.5", features = ["full"] }
+tower-sessions = { version = "0.14.0", features = ["memory-store"] }
+url = "2"
+url_mapper = { path = "../comp/url_mapper" }
+uuid = { version = "1", features = ["serde", "v4"] }
+valitron = { version = "0.5.6", features = ["full"] }
+wasm-bindgen = "=0.2"
+
+# A leptos project defines which workspace members
+# that are used together frontend (lib) & server (bin)
+[[workspace.metadata.leptos]]
+# this name is used for the wasm, js and css file names
+name = "web-app-ws"
+# the package in the workspace that contains the server binary (binary crate)
+bin-package = "server"
+# the package in the workspace that contains the frontend wasm binary (library crate)
+lib-package = "frontend"
+# The site root folder is where cargo-leptos generate all output. WARNING: all content of this folder will be erased on a rebuild. Use it in your server setup.
+site-root = "target/site"
+# The site-root relative folder where all compiled output (JS, WASM and CSS) is written
+# Defaults to pkg
+site-pkg-dir = "pkg"
+# [Optional] The source CSS file. If it ends with .sass or .scss then it will be compiled by dart-sass into CSS. The CSS is optimized by Lightning CSS before being written to <site-root>/<site-pkg>/app.css
+style-file = "style/main.scss"
+# Assets source dir. All files found here will be copied and synchronized to site-root.
+# The assets-dir cannot have a sub directory with the same name/path as site-pkg-dir.
+#
+# Optional. Env: LEPTOS_ASSETS_DIR.
+assets-dir = "public"
+# The IP and port (ex: 127.0.0.1:3000) where the server serves the content. Use it in your server setup.
+site-addr = "127.0.0.1:3000"
+# The port to use for automatic reload monitoring
+reload-port = 3001
+# [Optional] Command to use when running end2end tests. It will run in the end2end dir.
+#   [Windows] for non-WSL use "npx.cmd playwright test"
+#   This binary name can be checked in Powershell with Get-Command npx
+end2end-cmd = "npx playwright test"
+end2end-dir = "end2end"
+# The browserlist query used for optimizing the CSS.
+browserquery = "defaults"
+# Set by cargo-leptos watch when building with that tool. Controls whether autoreload JS will be included in the head
+watch = false
+# The environment Leptos will run in, usually either "DEV" or "PROD"
+env = "DEV"
+# The features to use when compiling the bin target
+#
+# Optional. Can be over-ridden with the command line parameter --bin-features
+bin-features = []
+# If the --no-default-features flag should be used when compiling the bin target
+#
+# Optional. Defaults to false.
+bin-default-features = false
+# The features to use when compiling the lib target
+#
+# Optional. Can be over-ridden with the command line parameter --lib-features
+lib-features = []
+# If the --no-default-features flag should be used when compiling the lib target
+#
+# Optional. Defaults to false.
+lib-default-features = false
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+

@@ -1,0 +1,5 @@
+{
+  "devDependencies": {
+    "prettier-plugin-rust": "^0.2.0"
+  }
+}

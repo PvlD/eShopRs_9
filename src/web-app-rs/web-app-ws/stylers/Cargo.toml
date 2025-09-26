@@ -1,0 +1,7 @@
+[workspace]
+members = ["stylers_core", "stylers", "stylers_macro"]
+exclude = ["examples"]
+resolver = "2"
+
+[workspace.dependencies]
+stylers = { path = "./stylers" }

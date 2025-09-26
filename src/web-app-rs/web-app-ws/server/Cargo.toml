@@ -1,0 +1,46 @@
+[package]
+name = "server"
+version = "0.1.0"
+edition = "2024"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+amqprs = { workspace = true }
+anyhow.workspace = true
+api_version = { workspace = true }
+app = { path = "../app", default-features = false, features = ["ssr"] }
+app_events = { workspace = true }
+# futures-core.workspace = true
+async-trait.workspace = true
+auth = { workspace = true }
+axum.workspace = true
+axum-login.workspace = true
+basket_ordering = { workspace = true, features = ["ssr"] }
+bollard = { workspace = true }
+catalog = { workspace = true, features = ["ssr"] }
+dotenvy = { version = "0.15" }
+futures.workspace = true
+leptos = { workspace = true, features = ["ssr"] }
+leptos_axum.workspace = true
+log.workspace = true
+log4rs.workspace = true
+rabbit_mq_bus = { workspace = true }
+regex.workspace = true
+reqwest.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sqlx.workspace = true
+time.workspace = true
+tokio.workspace = true
+tokio-stream.workspace = true
+tower.workspace = true
+tower-http.workspace = true
+tower-sessions.workspace = true
+url.workspace = true
+url_mapper = { workspace = true }
+valitron.workspace = true
+
+[features]
+default = []
+traces = []

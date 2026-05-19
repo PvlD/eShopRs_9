@@ -131,6 +131,36 @@ builder.AddExecutable("WebAppRs", "cargo", "..\\web-app-rs\\web-app-ws", "leptos
     .WithReference(rabbitMq)
     .WithEnvironment("IdentityUrl", identityEndpoint);
 
+/*
+builder.AddExecutable("WebAppRsA", "cargo", "..\\web-app-rs\\web-app-ws", "leptos", "watch")
+      .WithEnvironment(context =>
+      {
+          context.EnvironmentVariables["LEPTOS_SITE_ADDR"] = "127.0.0.1:3010";
+
+          context.EnvironmentVariables["AMQP_EXCHANGE_NAME"] = "eshop_event_bus";
+          context.EnvironmentVariables["AMQP_QUEUE_NAME"] = "Ordering.webapprs31";
+
+          context.EnvironmentVariables["OPENID_CLIENT_ID"] = "webapprs31";
+          context.EnvironmentVariables["OPENID_CLIENT_SECRET"] = "secret";
+          context.EnvironmentVariables["OPENID_REDIRECT_URL"] = "/user/signin-oidc";
+
+      })
+      .WithEndpoint("http", e =>
+      {
+          e.IsExternal = false;
+          e.IsProxied = false;
+          e.UriScheme = "http";
+          e.TargetHost = "127.0.0.1";
+          e.TargetPort = 3010;
+
+      }
+      )
+     .WithReference(basketApi)
+    .WithReference(catalogApi)
+    .WithReference(orderingApi)
+    .WithReference(rabbitMq)
+    .WithEnvironment("IdentityUrl", identityEndpoint);
+*/
 
 
 

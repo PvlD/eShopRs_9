@@ -102,6 +102,7 @@ identityApi.WithEnvironment("BasketApiClient", basketApi.GetEndpoint("http"))
 
 
 
+
 builder.AddExecutable("WebAppRs", "cargo", "..\\web-app-rs\\web-app-ws", "leptos", "watch")
       .WithEnvironment(context =>
       {
@@ -131,18 +132,22 @@ builder.AddExecutable("WebAppRs", "cargo", "..\\web-app-rs\\web-app-ws", "leptos
     .WithReference(rabbitMq)
     .WithEnvironment("IdentityUrl", identityEndpoint);
 
-/*
-builder.AddExecutable("WebAppRsA", "cargo", "..\\web-app-rs\\web-app-ws", "leptos", "watch")
+
+builder.AddExecutable("WebAppRsA", "cargo", "..\\web-app-rsa", "leptos", "watch")
+      .WithOtlpExporter()
       .WithEnvironment(context =>
       {
-          context.EnvironmentVariables["LEPTOS_SITE_ADDR"] = "127.0.0.1:3010";
+          context.EnvironmentVariables["CallBackUrl"] = "http://127.0.0.1:3030";
 
-          context.EnvironmentVariables["AMQP_EXCHANGE_NAME"] = "eshop_event_bus";
-          context.EnvironmentVariables["AMQP_QUEUE_NAME"] = "Ordering.webapprs31";
+          context.EnvironmentVariables["LEPTOS_SITE_ADDR"] = "127.0.0.1:3030";
+          context.EnvironmentVariables["LEPTOS_RELOAD_PORT"] = "3031";
 
-          context.EnvironmentVariables["OPENID_CLIENT_ID"] = "webapprs31";
-          context.EnvironmentVariables["OPENID_CLIENT_SECRET"] = "secret";
-          context.EnvironmentVariables["OPENID_REDIRECT_URL"] = "/user/signin-oidc";
+          context.EnvironmentVariables["RUST_BACKTRACE"] = "1";
+
+
+
+
+
 
       })
       .WithEndpoint("http", e =>
@@ -151,7 +156,7 @@ builder.AddExecutable("WebAppRsA", "cargo", "..\\web-app-rs\\web-app-ws", "lepto
           e.IsProxied = false;
           e.UriScheme = "http";
           e.TargetHost = "127.0.0.1";
-          e.TargetPort = 3010;
+          e.TargetPort = 3030;
 
       }
       )
@@ -160,7 +165,6 @@ builder.AddExecutable("WebAppRsA", "cargo", "..\\web-app-rs\\web-app-ws", "lepto
     .WithReference(orderingApi)
     .WithReference(rabbitMq)
     .WithEnvironment("IdentityUrl", identityEndpoint);
-*/
 
 
 
@@ -168,7 +172,6 @@ builder.AddExecutable("WebAppRsA", "cargo", "..\\web-app-rs\\web-app-ws", "lepto
 
 
 builder.Build().Run();
-
 
 
 

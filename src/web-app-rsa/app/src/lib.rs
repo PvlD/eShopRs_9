@@ -31,6 +31,28 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
             <head>
                 <meta charset="utf-8"/>
                 <meta name="viewport" content="width=device-width, initial-scale=1"/>
+                <script>
+                    {r#"
+(function() {
+    if (window.__opencode_ws_patched) return;
+    window.__opencode_ws_patched = true;
+
+    var OrigWS = WebSocket;
+    WebSocket = function(url, protocols) {
+        if (typeof url === 'string' && url.startsWith('wss://127.0.0.1:3031/')) {
+            console.warn("[opencode] downgraded WSS to WS for 3031");
+            url = url.replace("wss://", "ws://");
+        }
+        return new OrigWS(url, protocols);
+    };
+    WebSocket.prototype = OrigWS.prototype;
+    WebSocket.CONNECTING = 0;
+    WebSocket.OPEN = 1;
+    WebSocket.CLOSING = 2;
+    WebSocket.CLOSED = 3;
+})();
+"#}  
+                </script>
                 <AutoReload options=options.clone()/>
                 <HydrationScripts options/>
                 <MetaTags/>

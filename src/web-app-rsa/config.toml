@@ -13,7 +13,7 @@ version = "1.0"
 authority = "http://localhost:5223"
 client_id = "webapprsa3"
 client_secret = "secret"
-callback_url = "http://127.0.0.1:3030"
+callback_url = "http://localhost:3030"
 
 [ai.openai]
 chat_model = "google/gemma-4-e4b"
@@ -21,7 +21,7 @@ api_key = "not-needed"
 provider_url = "http://192.168.1.140:11234/v1"
 
 [eventbus]
-url = "amqp://guest:QJWtmBP0hc1g9av6P28F4d@localhost:62659"
+url = "amqp://guest:QJWtmBP0hc1g9av6P28F4d@localhost:57251"
 subscription_client_name = "webapprsa3"
 retry_count = 10
 

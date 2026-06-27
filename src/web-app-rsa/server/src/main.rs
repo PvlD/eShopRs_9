@@ -1,18 +1,26 @@
 #![recursion_limit = "256"]
 
+use std::io::BufReader;
+use std::path::PathBuf;
 use std::sync::Arc;
+use std::time::Duration;
 
+use anyhow::Context;
 use axum::{
-    extract::{FromRef, Path, State},
+    extract::{ws::WebSocketUpgrade, FromRef, Path, Request, State},
     http::{header, StatusCode},
-    response::IntoResponse,
+    middleware::Next,
+    response::{IntoResponse, Response},
     routing::{get, post},
     Router,
 };
+use axum_server::tls_rustls::RustlsConfig;
+use leptos::config::ReloadWSProtocol;
 use leptos::context::provide_context;
-use leptos::logging::log;
 use leptos::prelude::*;
 use leptos_axum::{generate_route_list, LeptosRoutes};
+use rustls::pki_types::CertificateDer;
+use tokio::sync::watch;
 use tower_sessions::{cookie::SameSite, MemoryStore, SessionManagerLayer};
 
 use app::*;
@@ -169,8 +177,46 @@ fn init_telemetry(otel: &settings::OtelSettings) -> TelemetryProviders {
     }
 }
 
+async fn alt_svc(req: Request, next: Next) -> Response {
+    let mut res = next.run(req).await;
+    res.headers_mut().insert(
+        header::ALT_SVC,
+        header::HeaderValue::from_static("h3=\":4433\""),
+    );
+    res
+}
+
+async fn handle_live_reload(ws: WebSocketUpgrade) -> impl axum::response::IntoResponse {
+    ws.on_upgrade(move |mut browser| async move {
+        while let Some(Ok(_)) = browser.recv().await {}
+    })
+}
+
+fn build_routes() -> Router<AppState> {
+    let mut router = Router::<AppState>::new()
+        .route("/product-images/{id}", get(proxy_product_image))
+        .route("/user/login", get(auth::login))
+        .route("/signin-oidc", get(auth::callback))
+        .route("/user/logout", post(auth::logout))
+        .route("/signout-callback-oidc", get(auth::logout_callback))
+        .route("/api/orders/events", get(notification::order_events_handler));
+
+    #[cfg(debug_assertions)]
+    {
+        router = router
+            .route("/health", get(|| async { StatusCode::OK }))
+            .route("/alive", get(|| async { StatusCode::OK }));
+    }
+
+    router
+}
+
 #[tokio::main]
-async fn main() {
+async fn main() -> anyhow::Result<()> {
+    rustls::crypto::ring::default_provider()
+        .install_default()
+        .expect("failed to install rustls crypto provider");
+
     dotenvy::dotenv().ok();
 
     let settings = Arc::new(settings::load().expect("Failed to load config"));
@@ -230,63 +276,250 @@ async fn main() {
     let addr = leptos_options.site_addr;
     let routes = generate_route_list(App);
 
+    // TLS options for HTTPS and QUIC servers
+    let mut tls_options = leptos_options.clone();
+    tls_options.reload_external_port = Some(3031);
+    tls_options.reload_ws_protocol = ReloadWSProtocol::WS;
+
+    // App states
     let app_state = AppState {
         leptos_options: leptos_options.clone(),
         settings: settings.clone(),
         notification_service: notification_service.clone(),
     };
-
+    let app_state_tls = AppState {
+        leptos_options: tls_options.clone(),
+        settings: settings.clone(),
+        notification_service: notification_service.clone(),
+    };
     let ctx_provider = {
         let s = settings.clone();
         move || provide_context(s.clone())
     };
 
-    let lo_routes = leptos_options.clone();
-    let lo_fallback = leptos_options.clone();
-
-    let session_store = MemoryStore::default();
-    let session_layer = SessionManagerLayer::new(session_store)
+    let store = MemoryStore::default();
+    let session_layer_plain = SessionManagerLayer::new(store.clone())
+        .with_secure(false)
+        .with_same_site(SameSite::Lax)
+        .with_name("webapprsa3.sess");
+    let session_layer_tls = SessionManagerLayer::new(store)
         .with_secure(false)
         .with_same_site(SameSite::Lax)
         .with_name("webapprsa3.sess");
 
-    let app = {
-        let mut router = Router::<AppState>::new()
-            .route("/product-images/{id}", get(proxy_product_image))
-            .route("/user/login", get(auth::login))
-            .route("/signin-oidc", get(auth::callback))
-            .route("/user/logout", post(auth::logout))
-            .route("/signout-callback-oidc", get(auth::logout_callback))
-            .route("/api/orders/events", get(notification::order_events_handler));
+    // ── Plain HTTP router (port 3030) ──
+    let lo_routes = leptos_options.clone();
+    let lo_fallback = leptos_options.clone();
 
-        #[cfg(debug_assertions)]
-        {
-            router = router
-                .route("/health", get(|| async { StatusCode::OK }))
-                .route("/alive", get(|| async { StatusCode::OK }));
-        }
-
-        router
-    }
-    .leptos_routes_with_context(
+    let app_http = build_routes()
+        .leptos_routes_with_context(
             &app_state,
-            routes,
+            routes.clone(),
             ctx_provider.clone(),
             move || shell(lo_routes.clone()),
         )
-        .layer(session_layer)
+        .layer(session_layer_plain)
         .layer(axum::middleware::from_fn(metrics::metrics_middleware))
         .fallback(leptos_axum::file_and_error_handler_with_context::<AppState, _>(
-            ctx_provider,
+            ctx_provider.clone(),
             move |_req| shell(lo_fallback.clone()),
         ))
         .with_state(app_state);
 
-    log!("listening on http://{}", &addr);
-    let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
-    axum::serve(listener, app.into_make_service())
-        .await
-        .unwrap();
+    // ── TLS/QUIC base router (without /live_reload) ──
+    let tls_routes_lo = tls_options.clone();
+    let tls_fallback_lo = tls_options.clone();
+
+    let app_tls_base = build_routes()
+        .leptos_routes_with_context(
+            &app_state_tls,
+            routes.clone(),
+            ctx_provider.clone(),
+            move || shell(tls_routes_lo.clone()),
+        )
+        .layer(session_layer_tls)
+        .layer(axum::middleware::from_fn(metrics::metrics_middleware))
+        .fallback(leptos_axum::file_and_error_handler_with_context::<AppState, _>(
+            ctx_provider,
+            move |_req| shell(tls_fallback_lo.clone()),
+        ))
+        .with_state(app_state_tls);
+
+    let app_tls = app_tls_base
+        .clone()
+        .route("/live_reload", axum::routing::any(handle_live_reload))
+        .layer(axum::middleware::from_fn(alt_svc));
+
+    let app_for_quic = app_tls_base;
+
+    let (shutdown_tx, mut shutdown_rx) = watch::channel(());
+
+    tokio::spawn(async move {
+        tokio::signal::ctrl_c().await.ok();
+        tracing::info!("shutdown signal received");
+        let _ = shutdown_tx.send(());
+    });
+
+    // ── Plain HTTP/1.1 ──
+    let mut plain_sd = shutdown_rx.clone();
+    let plain_task = tokio::spawn(async move {
+        let listener = tokio::net::TcpListener::bind(&addr).await?;
+        tracing::info!("HTTP/1.1 listening on http://{addr}");
+        axum::serve(listener, app_http.into_make_service())
+            .with_graceful_shutdown(async move {
+                plain_sd.changed().await.ok();
+            })
+            .await
+            .context("plain HTTP server exited with error")
+    });
+
+    // ── TCP+TLS: HTTP/1.1 (port 8443) ──
+    let tcp_tls_addr: std::net::SocketAddr = ([127, 0, 0, 1], 8443).into();
+    let cert_path = PathBuf::from("config/tls/cert.pem");
+    let key_path = PathBuf::from("config/tls/key.pem");
+
+    let mut reader = BufReader::new(
+        std::fs::File::open(&cert_path)
+            .with_context(|| format!("failed to open {}", cert_path.display()))?,
+    );
+    let certs: Vec<CertificateDer<'static>> = rustls_pemfile::certs(&mut reader)
+        .collect::<Result<Vec<_>, _>>()
+        .context("failed to parse certificate")?;
+
+    let mut reader = BufReader::new(
+        std::fs::File::open(&key_path)
+            .with_context(|| format!("failed to open {}", key_path.display()))?,
+    );
+    let key = rustls_pemfile::private_key(&mut reader)
+        .context("failed to parse private key")?
+        .ok_or_else(|| anyhow::anyhow!("no private key found in {}", key_path.display()))?;
+
+    let mut server_config = rustls::ServerConfig::builder()
+        .with_no_client_auth()
+        .with_single_cert(certs, key)
+        .context("failed to build TLS config")?;
+    server_config.alpn_protocols = vec![b"h2".to_vec(), b"http/1.1".to_vec()];
+    let tls_config = RustlsConfig::from_config(Arc::new(server_config));
+
+    let tls_handle = axum_server::Handle::new();
+    let mut tls_sd = shutdown_rx.clone();
+    let tls_handle_clone = tls_handle.clone();
+    tokio::spawn(async move {
+        tls_sd.changed().await.ok();
+        tls_handle_clone.graceful_shutdown(Some(Duration::from_secs(30)));
+    });
+
+    let tls_task = tokio::spawn({
+        let app = app_tls;
+        async move {
+            tracing::info!("HTTP/1.1 (TLS) listening on https://{tcp_tls_addr}");
+            axum_server::bind_rustls(tcp_tls_addr, tls_config)
+                .handle(tls_handle)
+                .serve(app.into_make_service())
+                .await
+                .context("TCP/TLS server exited with error")
+        }
+    });
+
+    // ── QUIC: HTTP/3 (port 4433) ──
+    let quic_addr: std::net::SocketAddr = ([127, 0, 0, 1], 4433).into();
+    let quic_sd = shutdown_rx.clone();
+
+    let mut reader = BufReader::new(
+        std::fs::File::open(&cert_path)
+            .with_context(|| format!("failed to open {}", cert_path.display()))?,
+    );
+    let certs: Vec<CertificateDer<'static>> = rustls_pemfile::certs(&mut reader)
+        .collect::<Result<Vec<_>, _>>()
+        .context("failed to parse certificate")?;
+
+    let mut reader = BufReader::new(
+        std::fs::File::open(&key_path)
+            .with_context(|| format!("failed to open {}", key_path.display()))?,
+    );
+    let key = rustls_pemfile::private_key(&mut reader)
+        .context("failed to parse private key")?
+        .ok_or_else(|| anyhow::anyhow!("no private key found in {}", key_path.display()))?;
+
+    let mut quic_tls_config = rustls::ServerConfig::builder()
+        .with_no_client_auth()
+        .with_single_cert(certs, key)
+        .context("failed to build rustls TLS config")?;
+
+    quic_tls_config.alpn_protocols = vec![b"h3".to_vec()];
+
+    let quic_server_config = quinn::ServerConfig::with_crypto(Arc::new(
+        quinn::crypto::rustls::QuicServerConfig::try_from(quic_tls_config)
+            .context("failed to build QUIC TLS config")?,
+    ));
+
+    let quic_task = tokio::spawn(async move {
+        let endpoint = quinn::Endpoint::server(quic_server_config, quic_addr)
+            .context("failed to bind QUIC endpoint")?;
+        tracing::info!("HTTP/3 listening on https://{quic_addr}");
+        let mut shutdown = quic_sd;
+        loop {
+            tokio::select! {
+                incoming = endpoint.accept() => {
+                    match incoming {
+                        Some(incoming) => {
+                            let app = app_for_quic.clone();
+                            tokio::spawn(async move {
+                                match incoming.await {
+                                    Ok(conn) => {
+                                        let quic_conn = h3_quinn::Connection::new(conn);
+                                        match h3::server::builder().build(quic_conn).await {
+                                            Ok(mut h3_conn) => loop {
+                                                match h3_conn.accept().await {
+                                                    Ok(Some(resolver)) => {
+                                                        if let Err(e) = h3_axum::serve_h3_with_axum(app.clone(), resolver).await {
+                                                            tracing::error!("request error: {e}");
+                                                        }
+                                                    }
+                                                    Ok(None) => break,
+                                                    Err(e) if h3_axum::is_graceful_h3_close(&e) => {
+                                                        tracing::debug!("h3 connection closed gracefully");
+                                                        break;
+                                                    }
+                                                    Err(e) => {
+                                                        tracing::error!("h3 connection error: {e}");
+                                                        break;
+                                                    }
+                                                }
+                                            },
+                                            Err(e) => {
+                                                tracing::error!("failed to build h3 connection: {e}");
+                                            }
+                                        }
+                                    }
+                                    Err(e) => {
+                                        tracing::error!("failed to accept QUIC connection: {e}");
+                                    }
+                                }
+                            });
+                        }
+                        None => break,
+                    }
+                }
+                _ = shutdown.changed() => {
+                    tracing::info!("shutting down HTTP/3 server");
+                    endpoint.close(0u8.into(), b"shutdown");
+                    endpoint.wait_idle().await;
+                    break;
+                }
+            }
+        }
+        anyhow::Ok::<()>(())
+    });
+
+    shutdown_rx.changed().await.ok();
+    tracing::info!("shutting down");
+
+    plain_task.await.unwrap()?;
+    tls_task.await.unwrap()?;
+    quic_task.await.unwrap()?;
+
+    Ok(())
 }
 
 async fn proxy_product_image(

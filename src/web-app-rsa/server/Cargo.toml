@@ -10,28 +10,38 @@ app = { path = "../app", default-features = false, features = ["ssr"] }
 leptos = { workspace = true, features = [ "ssr" ]}
 leptos_axum.workspace = true
 
+anyhow = "1"
 axum.workspace = true
+axum-server = { version = "0.8", features = ["tls-rustls"] }
+base64 = "0.22"
+chrono = { version = "0.4", features = ["serde"] }
+dotenvy = "0.15"
+eventbus = { path = "../eventbus" }
+futures = "0.3"
+h3 = "0.0.8"
+h3-axum = "0.2"
+h3-quinn = "0.0.10"
+http-body-util = "0.1"
+opentelemetry = "0.32"
+opentelemetry-otlp = { version = "0.32", features = ["grpc-tonic"] }
+opentelemetry_sdk = { version = "0.32", features = ["rt-tokio"] }
+quinn = "0.11"
 reqwest.workspace = true
+rustls = { version = "0.23", features = ["ring"] }
+rustls-pemfile = "2"
+rustls-pki-types = "1"
+serde.workspace = true
+serde_json = "1"
+settings = { path = "../settings" }
 tokio.workspace = true
 tower.workspace = true
 tower-http.workspace = true
-dotenvy = "0.15"
-settings = { path = "../settings" }
 tower-sessions.workspace = true
-serde.workspace = true
-serde_json = "1"
+tracing = "0.1"
+tracing-log = "0.2"
+tracing-opentelemetry = "0.33"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 url.workspace = true
-base64 = "0.22"
-eventbus = { path = "../eventbus" }
-chrono = { version = "0.4", features = ["serde"] }
 uuid = { version = "1", features = ["v4", "serde"] }
 async-trait = "0.1"
-tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-tracing-opentelemetry = "0.33"
-tracing-log = "0.2"
-opentelemetry = "0.32"
-opentelemetry_sdk = { version = "0.32", features = ["rt-tokio"] }
-opentelemetry-otlp = { version = "0.32", features = ["grpc-tonic"] }
-futures = "0.3"
 

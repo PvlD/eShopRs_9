@@ -8,8 +8,8 @@ const PAGE_SIZE: i32 = 9;
 #[component]
 pub fn CatalogPage() -> impl IntoView {
     if let Some(ctx) = use_context::<HeaderContext>() {
-        ctx.title.set("Catalog".to_string());
-        ctx.subtitle.set("Items".to_string());
+        ctx.title.set("Ready for a new adventure?".to_string());
+        ctx.subtitle.set("Start the season with the latest in clothing and equipment.".to_string());
     }
 
     let query = use_query_map();

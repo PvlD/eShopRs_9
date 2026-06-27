@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use axum::{
     extract::{Query, State},
-    http::StatusCode,
+    http::{HeaderMap, StatusCode},
     response::{IntoResponse, Redirect},
 };
 use serde::Deserialize;
@@ -13,6 +13,7 @@ use settings::Settings;
 const SCOPES: &str = "openid profile orders basket offline_access";
 
 pub async fn login(
+    headers: HeaderMap,
     State(settings): State<Arc<Settings>>,
     session: Session,
     Query(params): Query<LoginParams>,
@@ -26,7 +27,16 @@ pub async fn login(
         session.insert("return_url", &return_url).await?;
     }
 
-    let redirect_uri = format!("{}/signin-oidc", settings.identity.callback_url);
+    let host = headers
+        .get("host")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("localhost:3030");
+    let port = host.split(':').nth(1).unwrap_or("3030");
+    let scheme = if port == "8443" || port == "4433" { "https" } else { "http" };
+    let base_url = format!("{scheme}://{host}");
+    let redirect_uri = format!("{base_url}/signin-oidc");
+    session.insert("oauth_redirect_uri", &redirect_uri).await?;
+
     let auth_url = format!(
         "{}/connect/authorize?client_id={}&response_type=code&scope={}&redirect_uri={}&state={}&nonce={}",
         settings.identity.authority,
@@ -65,7 +75,10 @@ pub(crate) async fn callback(
         return Err(AppError("State mismatch".into()));
     }
 
-    let redirect_uri = format!("{}/signin-oidc", settings.identity.callback_url);
+    let redirect_uri = session
+        .get::<String>("oauth_redirect_uri")
+        .await?
+        .unwrap_or_else(|| format!("{}/signin-oidc", settings.identity.callback_url));
     let http = reqwest::Client::new();
 
     let token_body = format!(
@@ -124,6 +137,7 @@ pub(crate) async fn callback(
 
     session.remove::<String>("oauth_state").await?;
     session.remove::<String>("oauth_nonce").await?;
+    session.remove::<String>("oauth_redirect_uri").await?;
     let return_url = session
         .remove::<String>("return_url")
         .await?
@@ -133,13 +147,21 @@ pub(crate) async fn callback(
 }
 
 pub async fn logout(
+    headers: HeaderMap,
     State(settings): State<Arc<Settings>>,
     session: Session,
 ) -> Result<impl IntoResponse, AppError> {
     let id_token: Option<String> = session.get("id_token").await?;
     session.clear().await;
 
-    let post_logout_uri = format!("{}/signout-callback-oidc", settings.identity.callback_url);
+    let host = headers
+        .get("host")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("localhost:3030");
+    let port = host.split(':').nth(1).unwrap_or("3030");
+    let scheme = if port == "8443" || port == "4433" { "https" } else { "http" };
+    let base_url = format!("{scheme}://{host}");
+    let post_logout_uri = format!("{base_url}/signout-callback-oidc");
     let mut logout_url = format!(
         "{}/connect/endsession?post_logout_redirect_uri={}",
         settings.identity.authority,

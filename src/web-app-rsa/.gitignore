@@ -16,3 +16,4 @@ end2end/playwright-report/
 playwright/.cache/
 style/main.css
 /.vs
+config/tls/

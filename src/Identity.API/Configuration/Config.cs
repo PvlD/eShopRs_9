@@ -125,9 +125,21 @@ namespace eShop.Identity.API.Configuration
                     AllowOfflineAccess = true,
                     AlwaysIncludeUserClaimsInIdToken = true,
                     RequirePkce = false,
-                    RedirectUris = new List<string> { "http://127.0.0.1:3030/signin-oidc" },
-                    PostLogoutRedirectUris = new List<string> { "http://127.0.0.1:3030/signout-callback-oidc" }, 
-                    
+                    RedirectUris = new List<string>
+                    {
+                        "http://127.0.0.1:3030/signin-oidc",
+                        "http://localhost:3030/signin-oidc",
+                        "https://127.0.0.1:8443/signin-oidc",
+                        "https://localhost:8443/signin-oidc"
+                    },
+                    PostLogoutRedirectUris = new List<string>
+                    {
+                        "http://127.0.0.1:3030/signout-callback-oidc",
+                        "http://localhost:3030/signout-callback-oidc",
+                        "https://127.0.0.1:8443/signout-callback-oidc",
+                        "https://localhost:8443/signout-callback-oidc"
+                    }, 
+                     
                     AllowedScopes = new List<string>
                     {
                         IdentityServerConstants.StandardScopes.OpenId,

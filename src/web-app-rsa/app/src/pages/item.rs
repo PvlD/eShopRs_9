@@ -87,7 +87,7 @@ pub fn ItemPage() -> impl IntoView {
     });
 
     let basket_state = use_context::<BasketState>();
-    let href = login_url(&location.pathname.get());
+    let href = move || login_url(&location.pathname.get());
 
     view! {
         <Title text={move || {
